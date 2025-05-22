@@ -3,81 +3,86 @@ const slides = document.querySelectorAll(".slide-card");
 const dots = document.querySelectorAll(".slider-dot");
 const prevButton = document.querySelector(".prev");
 const nextButton = document.querySelector(".next");
+const sliderContainer = document.querySelector(".sliders");
 
 let currentSlideIndex = 0;
 let autoSlideInterval;
+let isAnimating = false;
 
-function updateSlidePosition() {
+// Adjust slide width dynamically
+function updateSlideWidth() {
   const slideWidth = slides[0].offsetWidth;
-  sliderContent.style.transform = `translateX(-${
-    currentSlideIndex * slideWidth
-  }px)`;
-  updateDots();
-  updateButtons();
+  return slideWidth;
 }
 
-function updateDots() {
-  dots.forEach((dot, index) => {
-    dot.classList.toggle("active", index === currentSlideIndex);
-  });
-}
-
-function updateButtons() {
-  prevButton.disabled = currentSlideIndex === 0;
-  nextButton.disabled = currentSlideIndex === slides.length - 1;
-}
-
+// Go to a specific slide
 function goToSlide(index) {
-  if (index >= 0 && index < slides.length) {
-    currentSlideIndex = index;
-    updateSlidePosition();
-  }
+  if (isAnimating) return;
+  isAnimating = true;
+
+  const maxIndex = slides.length - 1; // Adjust based on the number of visible slides
+  currentSlideIndex = Math.max(0, Math.min(index, maxIndex));
+  const translateValue = currentSlideIndex * updateSlideWidth();
+
+  sliderContent.style.transform = `translateX(-${translateValue}px)`;
+  sliderContent.style.transition = "transform 0.5s ease-in-out";
+
+  updateActiveDot(currentSlideIndex);
+  updateButtonColors();
+
+  setTimeout(() => (isAnimating = false), 500);
 }
 
-function slideNext() {
-  if (currentSlideIndex < slides.length - 1) {
-    currentSlideIndex++;
-  } else {
-    currentSlideIndex = 0;
-  }
-  updateSlidePosition();
+// Update active dot
+function updateActiveDot(index) {
+  dots.forEach((dot, i) => dot.classList.toggle("active", i === index));
 }
 
-function slidePrev() {
-  if (currentSlideIndex > 0) {
-    currentSlideIndex--;
-  } else {
-    currentSlideIndex = slides.length - 1;
-  }
-  updateSlidePosition();
+// Update button colors
+function updateButtonColors() {
+  prevButton.style.backgroundColor =
+    currentSlideIndex === 0 ? "#222020" : "#af32f6";
+  nextButton.style.backgroundColor =
+    currentSlideIndex >= slides.length - 1 ? "#222020" : "#af32f6";
 }
 
+// Slide left
+function slideLeft() {
+  goToSlide(currentSlideIndex - 1);
+}
+
+// Slide right
+function slideRight() {
+  goToSlide(currentSlideIndex + 1);
+}
+
+// Auto-slide
 function startAutoSlide() {
-  autoSlideInterval = setInterval(slideNext, 5000);
+  autoSlideInterval = setInterval(() => {
+    if (currentSlideIndex === slides.length - 1) {
+      goToSlide(0);
+    } else {
+      slideRight();
+    }
+  }, 3000);
 }
 
 function stopAutoSlide() {
   clearInterval(autoSlideInterval);
 }
 
-// Event Listeners
-nextButton.addEventListener("click", slideNext);
-prevButton.addEventListener("click", slidePrev);
+// Event listeners
+prevButton.addEventListener("click", slideLeft);
+nextButton.addEventListener("click", slideRight);
+dots.forEach((dot) =>
+  dot.addEventListener("click", () =>
+    goToSlide(parseInt(dot.getAttribute("data-index")))
+  )
+);
+window.addEventListener("resize", () => goToSlide(currentSlideIndex));
+sliderContainer.addEventListener("mouseover", stopAutoSlide);
+sliderContainer.addEventListener("mouseleave", startAutoSlide);
 
-dots.forEach((dot) => {
-  dot.addEventListener("click", () => {
-    const index = parseInt(dot.getAttribute("data-index"));
-    goToSlide(index);
-  });
-});
-
-window.addEventListener("resize", updateSlidePosition);
-
-document.querySelector(".sliders").addEventListener("mouseover", stopAutoSlide);
-document
-  .querySelector(".sliders")
-  .addEventListener("mouseleave", startAutoSlide);
-
-// Init
-updateSlidePosition();
+// Initialize slider
+goToSlide(currentSlideIndex);
 startAutoSlide();
